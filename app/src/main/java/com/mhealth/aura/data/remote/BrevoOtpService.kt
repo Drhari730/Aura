@@ -7,56 +7,51 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
-class SupabaseAuthService(
+class BrevoOtpService(
     private val supabaseUrl: String,
-    private val anonKey: String
+    private val anonKey: String,
+    private val functionName: String
 ) {
     val isConfigured: Boolean
-        get() = supabaseUrl.isNotBlank() && anonKey.isNotBlank()
+        get() = supabaseUrl.isNotBlank() && anonKey.isNotBlank() && functionName.isNotBlank()
 
     suspend fun sendEmailOtp(email: String): Result<Unit> = withContext(Dispatchers.IO) {
         if (!isConfigured) {
             return@withContext Result.failure(
-                IllegalStateException("Supabase is not configured for this build.")
+                IllegalStateException("Brevo OTP service is not configured for this build.")
             )
         }
 
-        val body = JSONObject()
-            .put("email", email)
-            .put("create_user", true)
-
-        request(path = "/auth/v1/otp", body = body).map { }
+        request(
+            JSONObject()
+                .put("action", "send")
+                .put("email", email)
+        ).map { }
     }
 
-    suspend fun verifyEmailOtp(email: String, token: String): Result<SupabaseSession> =
+    suspend fun verifyEmailOtp(email: String, token: String): Result<Unit> =
         withContext(Dispatchers.IO) {
             if (!isConfigured) {
                 return@withContext Result.failure(
-                    IllegalStateException("Supabase is not configured for this build.")
+                    IllegalStateException("Brevo OTP service is not configured for this build.")
                 )
             }
 
-            val body = JSONObject()
-                .put("email", email)
-                .put("token", token)
-                .put("type", "email")
-
-            request(path = "/auth/v1/verify", body = body).map { json ->
-                SupabaseSession(
-                    accessToken = json.optString("access_token"),
-                    refreshToken = json.optString("refresh_token"),
-                    userId = json.optJSONObject("user")?.optString("id").orEmpty()
-                )
-            }
+            request(
+                JSONObject()
+                    .put("action", "verify")
+                    .put("email", email)
+                    .put("code", token)
+            ).map { }
         }
 
-    private fun request(path: String, body: JSONObject): Result<JSONObject> {
+    private fun request(body: JSONObject): Result<JSONObject> {
         return runCatching {
-            val endpoint = "${supabaseUrl.trimEnd('/')}$path"
+            val endpoint = "${supabaseUrl.trimEnd('/')}/functions/v1/$functionName"
             val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 15_000
-                readTimeout = 15_000
+                readTimeout = 20_000
                 doOutput = true
                 setRequestProperty("apikey", anonKey)
                 setRequestProperty("Authorization", "Bearer $anonKey")
@@ -76,9 +71,9 @@ class SupabaseAuthService(
             val response = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
 
             if (responseCode !in 200..299) {
-                val message = response.extractSupabaseError()
+                val message = response.extractApiError()
                 throw IllegalStateException(
-                    message.ifBlank { "Supabase request failed: HTTP $responseCode" }
+                    message.ifBlank { "Brevo OTP request failed: HTTP $responseCode" }
                 )
             }
 
@@ -87,18 +82,11 @@ class SupabaseAuthService(
     }
 }
 
-data class SupabaseSession(
-    val accessToken: String,
-    val refreshToken: String,
-    val userId: String
-)
-
-private fun String.extractSupabaseError(): String {
+private fun String.extractApiError(): String {
     return runCatching {
         val json = JSONObject(this)
-        json.optString("msg")
+        json.optString("error")
             .ifBlank { json.optString("message") }
-            .ifBlank { json.optString("error_description") }
-            .ifBlank { json.optString("error") }
+            .ifBlank { json.optString("reason") }
     }.getOrDefault(this)
 }

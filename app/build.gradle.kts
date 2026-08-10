@@ -19,6 +19,8 @@ fun localOrEnv(name: String): String =
         ?: providers.environmentVariable(name).orNull
         ?: ""
 
+val auraOtpFunction = localOrEnv("AURA_OTP_FUNCTION").ifBlank { "aura-brevo-otp" }
+
 android {
     namespace = "com.mhealth.aura"
     compileSdk = 36
@@ -32,6 +34,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("String", "SUPABASE_URL", "\"${localOrEnv("SUPABASE_URL")}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localOrEnv("SUPABASE_ANON_KEY")}\"")
+        buildConfigField("String", "AURA_OTP_FUNCTION", "\"$auraOtpFunction\"")
     }
 
     signingConfigs {

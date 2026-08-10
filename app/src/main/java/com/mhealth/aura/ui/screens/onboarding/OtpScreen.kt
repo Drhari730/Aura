@@ -45,7 +45,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mhealth.aura.BuildConfig
-import com.mhealth.aura.data.remote.SupabaseAuthService
+import com.mhealth.aura.data.remote.BrevoOtpService
 import com.mhealth.aura.ui.theme.BackgroundApp
 import com.mhealth.aura.ui.theme.BlueLight
 import com.mhealth.aura.ui.theme.BluePrimary
@@ -59,7 +59,7 @@ private const val DEMO_OTP = "123456"
 
 @Composable
 fun OtpScreen(
-    authService: SupabaseAuthService? = null,
+    authService: BrevoOtpService? = null,
     onVerified: (String) -> Unit
 ) {
     var email by remember { mutableStateOf("") }
@@ -69,7 +69,7 @@ fun OtpScreen(
     var loading by remember { mutableStateOf(false) }
     val otpFocusRequester = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
-    val useSupabase = authService?.isConfigured == true
+    val useBrevoOtp = authService?.isConfigured == true
 
     LaunchedEffect(otpSent) {
         if (otpSent) otpFocusRequester.requestFocus()
@@ -93,7 +93,7 @@ fun OtpScreen(
             Spacer(modifier = Modifier.height(14.dp))
             Text("Verify Your Email", style = MaterialTheme.typography.headlineLarge)
             Text(
-                "Use your email address to securely access your Aura account.",
+                "Aura will email a 6-digit code for secure in-app verification.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.padding(top = 4.dp)
             )
@@ -133,7 +133,7 @@ fun OtpScreen(
                     scope.launch {
                         loading = true
                         error = null
-                        val result = if (useSupabase) {
+                        val result = if (useBrevoOtp) {
                             authService.sendEmailOtp(email.lowercase())
                         } else {
                             Result.success(Unit)
@@ -143,8 +143,15 @@ fun OtpScreen(
                             otpSent = true
                             otp = ""
                         } else {
-                            error = result.exceptionOrNull()?.message
-                                ?: "Unable to send OTP. Please try again."
+                            if (BuildConfig.DEBUG) {
+                                otpSent = true
+                                otp = ""
+                                error = result.exceptionOrNull()?.message
+                                    ?: "Live Brevo OTP is not available yet. Use 123456 for this debug build."
+                            } else {
+                                error = result.exceptionOrNull()?.message
+                                    ?: "Unable to send OTP. Please try again."
+                            }
                         }
                     }
                 },
@@ -160,7 +167,7 @@ fun OtpScreen(
                     when {
                         loading -> "Please wait..."
                         otpSent -> "Send code again"
-                        else -> "Email me an OTP"
+                        else -> "Email me a 6-digit code"
                     },
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 15.sp
@@ -175,23 +182,18 @@ fun OtpScreen(
                     style = MaterialTheme.typography.bodySmall
                 )
                 Text(
-                    if (useSupabase) {
-                        "Enter the 6-digit code from the email. Do not tap a confirm-email link."
+                    if (useBrevoOtp) {
+                        "Check your email inbox for the Aura AMR verification code."
                     } else {
                         "Demo build code: $DEMO_OTP"
                     },
                     color = BluePrimary,
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                 )
-                if (useSupabase) {
-                    Text(
-                        "If the email shows only \"Confirm email address\" and no 6-digit code, the Supabase email template still needs to be changed to show {{ .Token }}.",
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
-                    )
+                if (useBrevoOtp) {
                     if (BuildConfig.DEBUG) {
                         Text(
-                            "Debug testing only: use 123456 until Brevo SMTP and Supabase OTP templates are configured.",
+                            "Debug testing only: use 123456 only if the Brevo function is not deployed yet.",
                             color = BluePrimary,
                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                         )
@@ -251,7 +253,7 @@ fun OtpScreen(
                         scope.launch {
                             loading = true
                             error = null
-                            if (useSupabase) {
+                            if (useBrevoOtp) {
                                 if (BuildConfig.DEBUG && otp == DEMO_OTP) {
                                     loading = false
                                     onVerified(email.lowercase())
@@ -262,7 +264,7 @@ fun OtpScreen(
                                         onVerified(email.lowercase())
                                     } else {
                                         error = result.exceptionOrNull()?.message
-                                            ?: "Incorrect or expired OTP. Request a fresh code and enter the 6 digits from the email."
+                                            ?: "Incorrect or expired OTP. Request a fresh code and enter the 6 digits from the Brevo email."
                                     }
                                 }
                             } else {

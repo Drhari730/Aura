@@ -17,7 +17,7 @@ import com.mhealth.aura.data.db.AuraDatabase
 import com.mhealth.aura.data.db.entity.MedicationEntity
 import com.mhealth.aura.data.db.entity.UserEntity
 import com.mhealth.aura.data.prefs.AppPreferences
-import com.mhealth.aura.data.remote.SupabaseAuthService
+import com.mhealth.aura.data.remote.BrevoOtpService
 import com.mhealth.aura.data.repository.DoseRepository
 import com.mhealth.aura.data.repository.MedicationRepository
 import com.mhealth.aura.data.repository.UserRepository
@@ -53,9 +53,10 @@ fun AuraNavHost(
     var draftUser by remember { mutableStateOf(UserEntity()) }
     var registrationMode by remember { mutableStateOf(false) }
     val authService = remember {
-        SupabaseAuthService(
+        BrevoOtpService(
             supabaseUrl = BuildConfig.SUPABASE_URL,
-            anonKey = BuildConfig.SUPABASE_ANON_KEY
+            anonKey = BuildConfig.SUPABASE_ANON_KEY,
+            functionName = BuildConfig.AURA_OTP_FUNCTION
         )
     }
 
