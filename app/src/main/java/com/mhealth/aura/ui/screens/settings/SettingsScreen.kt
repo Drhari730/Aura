@@ -44,7 +44,8 @@ fun SettingsScreen(
     onBack: () -> Unit,
     onSave: (UserEntity) -> Unit,
     onTestReminder: () -> Unit,
-    onOpenMedicationDiary: () -> Unit
+    onOpenMedicationDiary: () -> Unit,
+    onSignOut: () -> Unit
 ) {
     if (user == null) {
         AppScreen(title = "Settings", onBack = onBack) {
@@ -168,6 +169,12 @@ fun SettingsScreen(
                     listOf(user.city, user.district, user.state).filter(String::isNotBlank).joinToString(", "),
                     style = MaterialTheme.typography.bodySmall
                 )
+                OutlinedButton(
+                    onClick = onSignOut,
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp)
+                ) {
+                    Text("Sign out and show Email OTP login")
+                }
             }
 
             Button(

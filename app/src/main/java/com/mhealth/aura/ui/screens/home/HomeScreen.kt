@@ -2,6 +2,7 @@ package com.mhealth.aura.ui.screens.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,7 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -341,45 +345,57 @@ private fun SafetyRewardsCard(
     totalTaken: Int,
     onOpenLearn: () -> Unit
 ) {
+    val milestoneProgress = if (summary.totalBadges == 0) {
+        0f
+    } else {
+        summary.earnedBadges.toFloat() / summary.totalBadges.toFloat()
+    }
+    val nextBadge = summary.badges.firstOrNull { !it.earned }
+
     AuraCard(backgroundColor = PurpleLight) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            MilestoneDonut(
+                progress = milestoneProgress,
+                centerText = "${summary.earnedBadges}/${summary.totalBadges}",
+                modifier = Modifier.size(104.dp)
+            )
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Safety Rewards",
+                    "Safety Milestones",
                     fontWeight = FontWeight.Bold,
                     color = PurpleAccent
                 )
                 Text(
-                    "${summary.safetyPoints} safety points",
-                    fontSize = 20.sp,
+                    if (nextBadge == null) "All milestones unlocked" else "Next: ${nextBadge.title}",
+                    fontSize = 16.sp,
                     fontWeight = FontWeight.Bold,
                     color = TextDark
                 )
                 Text(
-                    "${summary.earnedBadges}/${summary.totalBadges} badges unlocked",
+                    "${summary.safetyPoints} safety score from correct logging and learning",
                     style = MaterialTheme.typography.bodySmall.copy(color = TextMedium)
                 )
-            }
-            TextButton(
-                onClick = onOpenLearn,
-                colors = ButtonDefaults.textButtonColors(contentColor = PurpleAccent)
-            ) {
-                Text("Learn")
+                TextButton(
+                    onClick = onOpenLearn,
+                    colors = ButtonDefaults.textButtonColors(contentColor = PurpleAccent)
+                ) {
+                    Text("Open AMR learning")
+                }
             }
         }
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(top = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            summary.badges.take(3).forEach { badge ->
-                Text(
-                    if (badge.earned) badge.title else "Locked",
+            summary.badges.forEachIndexed { index, badge ->
+                Row(
                     modifier = Modifier
-                        .weight(1f)
+                        .fillMaxWidth()
                         .background(
                             if (badge.earned) CardWhite else BackgroundApp,
                             RoundedCornerShape(12.dp)
@@ -390,16 +406,82 @@ private fun SafetyRewardsCard(
                             RoundedCornerShape(12.dp)
                         )
                         .padding(8.dp),
-                    color = if (badge.earned) PurpleAccent else TextLight,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.SemiBold
-                )
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(28.dp)
+                            .background(if (badge.earned) PurpleAccent else TextLight.copy(alpha = 0.35f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            if (badge.earned) "OK" else "${index + 1}",
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            badge.title,
+                            color = if (badge.earned) PurpleAccent else TextMedium,
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                        Text(
+                            badge.description,
+                            color = TextMedium,
+                            fontSize = 10.sp
+                        )
+                    }
+                }
             }
         }
+
         Text(
             GamificationRules.safetyNote(totalTaken),
             style = MaterialTheme.typography.bodySmall.copy(color = TextMedium),
             modifier = Modifier.padding(top = 10.dp)
         )
+    }
+}
+
+@Composable
+private fun MilestoneDonut(
+    progress: Float,
+    centerText: String,
+    modifier: Modifier = Modifier
+) {
+    Box(modifier = modifier, contentAlignment = Alignment.Center) {
+        Canvas(modifier = Modifier.fillMaxSize()) {
+            val stroke = 14.dp.toPx()
+            val diameter = size.minDimension - stroke
+            val topLeft = androidx.compose.ui.geometry.Offset(stroke / 2f, stroke / 2f)
+            val arcSize = androidx.compose.ui.geometry.Size(diameter, diameter)
+            drawArc(
+                color = Color.White.copy(alpha = 0.85f),
+                startAngle = -90f,
+                sweepAngle = 360f,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+            drawArc(
+                brush = Brush.sweepGradient(listOf(PurpleAccent, BluePrimary, GreenSuccess, PurpleAccent)),
+                startAngle = -90f,
+                sweepAngle = 360f * progress.coerceIn(0f, 1f),
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = stroke, cap = StrokeCap.Round)
+            )
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(centerText, fontWeight = FontWeight.Bold, color = TextDark, fontSize = 19.sp)
+            Text("done", color = TextMedium, fontSize = 10.sp)
+        }
     }
 }

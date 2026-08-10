@@ -205,14 +205,14 @@ fun ProgressScreen(
                 MetricCard("Missed", missed.toString(), RedLight, Modifier.weight(1f))
             }
             AuraCard(backgroundColor = PurpleLight) {
-                SectionLabel("Safety rewards")
+                SectionLabel("Safety milestones")
                 Text(
-                    "${rewards.safetyPoints} safety points",
+                    "${rewards.earnedBadges}/${rewards.totalBadges} milestones completed",
                     style = MaterialTheme.typography.titleLarge,
                     color = PurpleAccent
                 )
                 Text(
-                    "Badges reward correct schedule logging and AMR learning, never extra antibiotic intake.",
+                    "Milestones reward correct schedule logging and AMR learning, never extra antibiotic intake.",
                     style = MaterialTheme.typography.bodySmall.copy(color = TextMedium),
                     modifier = Modifier.padding(top = 4.dp, bottom = 8.dp)
                 )

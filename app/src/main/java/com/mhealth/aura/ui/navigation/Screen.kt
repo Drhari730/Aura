@@ -2,6 +2,7 @@ package com.mhealth.aura.ui.navigation
 
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Welcome : Screen("welcome")
     object Language : Screen("language")
     object Otp : Screen("otp")
     object RegStep1 : Screen("reg_step1")

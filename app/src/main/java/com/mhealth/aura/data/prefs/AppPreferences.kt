@@ -36,4 +36,8 @@ class AppPreferences(private val context: Context) {
     suspend fun setAuthenticatedEmail(email: String) {
         context.dataStore.edit { prefs -> prefs[KEY_AUTHENTICATED_EMAIL] = email }
     }
+
+    suspend fun clearAuthenticatedEmail() {
+        context.dataStore.edit { prefs -> prefs.remove(KEY_AUTHENTICATED_EMAIL) }
+    }
 }

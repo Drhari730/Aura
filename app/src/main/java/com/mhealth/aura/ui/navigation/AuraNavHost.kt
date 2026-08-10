@@ -36,6 +36,7 @@ import com.mhealth.aura.ui.screens.onboarding.OtpScreen
 import com.mhealth.aura.ui.screens.onboarding.RegStep1Screen
 import com.mhealth.aura.ui.screens.onboarding.RegStep2Screen
 import com.mhealth.aura.ui.screens.onboarding.RegStep3Screen
+import com.mhealth.aura.ui.screens.onboarding.WelcomeScreen
 import com.mhealth.aura.ui.screens.settings.SettingsScreen
 import kotlinx.coroutines.launch
 
@@ -48,7 +49,9 @@ fun AuraNavHost(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val onboardingDone by prefs.isOnboardingDone.collectAsStateWithLifecycle(initialValue = false)
+    val authenticatedEmail by prefs.authenticatedEmail.collectAsStateWithLifecycle(initialValue = "")
     var draftUser by remember { mutableStateOf(UserEntity()) }
+    var registrationMode by remember { mutableStateOf(false) }
     val authService = remember {
         SupabaseAuthService(
             supabaseUrl = BuildConfig.SUPABASE_URL,
@@ -138,10 +141,27 @@ fun AuraNavHost(
     NavHost(navController = navController, startDestination = Screen.Splash.route) {
         composable(Screen.Splash.route) {
             SplashScreen(isOnboardingDone = onboardingDone) { done ->
-                navController.navigate(if (done) Screen.Home.route else Screen.Language.route) {
+                val destination = when {
+                    authenticatedEmail.isBlank() -> Screen.Welcome.route
+                    done -> Screen.Home.route
+                    else -> Screen.Language.route
+                }
+                navController.navigate(destination) {
                     popUpTo(Screen.Splash.route) { inclusive = true }
                 }
             }
+        }
+        composable(Screen.Welcome.route) {
+            WelcomeScreen(
+                onEmailLogin = {
+                    registrationMode = false
+                    navController.navigate(Screen.Otp.route)
+                },
+                onNewRegistration = {
+                    registrationMode = true
+                    navController.navigate(Screen.Language.route)
+                }
+            )
         }
         composable(Screen.Language.route) {
             LanguageScreen { language ->
@@ -154,7 +174,13 @@ fun AuraNavHost(
             OtpScreen(authService = authService) { email ->
                 scope.launch { prefs.setAuthenticatedEmail(email) }
                 draftUser = draftUser.copy(email = email)
-                navController.navigate(Screen.RegStep1.route)
+                if (!registrationMode && onboardingDone) {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Welcome.route) { inclusive = true }
+                    }
+                } else {
+                    navController.navigate(Screen.RegStep1.route)
+                }
             }
         }
         composable(Screen.RegStep1.route) {
@@ -275,7 +301,15 @@ fun AuraNavHost(
                 onTestReminder = {
                     NotificationHelper.showTestReminder(context.applicationContext)
                 },
-                onOpenMedicationDiary = { navController.navigate(Screen.Diary.route) }
+                onOpenMedicationDiary = { navController.navigate(Screen.Diary.route) },
+                onSignOut = {
+                    scope.launch {
+                        prefs.clearAuthenticatedEmail()
+                        navController.navigate(Screen.Welcome.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                }
             )
         }
 
