@@ -2,6 +2,7 @@
 .kotlin/
 build/
 app/build/
+dist/
 local.properties
 .mcp.json
 debug.keystore
