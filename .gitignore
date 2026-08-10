@@ -1,0 +1,13 @@
+.gradle/
+.kotlin/
+build/
+app/build/
+local.properties
+.mcp.json
+debug.keystore
+*.jks
+*.keystore
+*.iml
+*.log
+hs_err_pid*.log
+replay_pid*.log
