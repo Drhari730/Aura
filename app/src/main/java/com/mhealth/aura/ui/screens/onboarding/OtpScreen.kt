@@ -44,6 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mhealth.aura.BuildConfig
 import com.mhealth.aura.data.remote.SupabaseAuthService
 import com.mhealth.aura.ui.theme.BackgroundApp
 import com.mhealth.aura.ui.theme.BlueLight
@@ -175,13 +176,27 @@ fun OtpScreen(
                 )
                 Text(
                     if (useSupabase) {
-                        "Check your email inbox for the Supabase OTP."
+                        "Enter the 6-digit code from the email. Do not tap a confirm-email link."
                     } else {
                         "Demo build code: $DEMO_OTP"
                     },
                     color = BluePrimary,
                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
                 )
+                if (useSupabase) {
+                    Text(
+                        "If the email shows only \"Confirm email address\" and no 6-digit code, the Supabase email template still needs to be changed to show {{ .Token }}.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                    )
+                    if (BuildConfig.DEBUG) {
+                        Text(
+                            "Debug testing only: use 123456 until Brevo SMTP and Supabase OTP templates are configured.",
+                            color = BluePrimary,
+                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold)
+                        )
+                    }
+                }
 
                 Box(
                     modifier = Modifier
@@ -237,13 +252,18 @@ fun OtpScreen(
                             loading = true
                             error = null
                             if (useSupabase) {
-                                val result = authService.verifyEmailOtp(email.lowercase(), otp)
-                                loading = false
-                                if (result.isSuccess) {
+                                if (BuildConfig.DEBUG && otp == DEMO_OTP) {
+                                    loading = false
                                     onVerified(email.lowercase())
                                 } else {
-                                    error = result.exceptionOrNull()?.message
-                                        ?: "Incorrect or expired OTP."
+                                    val result = authService.verifyEmailOtp(email.lowercase(), otp)
+                                    loading = false
+                                    if (result.isSuccess) {
+                                        onVerified(email.lowercase())
+                                    } else {
+                                        error = result.exceptionOrNull()?.message
+                                            ?: "Incorrect or expired OTP. Request a fresh code and enter the 6 digits from the email."
+                                    }
                                 }
                             } else {
                                 loading = false

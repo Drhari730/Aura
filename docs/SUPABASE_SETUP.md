@@ -18,10 +18,48 @@ When these values are blank, the debug app falls back to the local demo OTP `123
 1. Create a Supabase project.
 2. Open Authentication > Providers > Email.
 3. Enable email provider and OTP/magic-link email login.
-4. Open Authentication > URL Configuration.
-5. Add the app redirect URLs later when deep links are added.
-6. Open Authentication > SMTP Settings.
-7. Configure a production SMTP provider, preferably Resend after domain verification.
+4. Open Authentication > Email Templates.
+5. Edit both **Confirm signup** and **Magic Link** templates so the email shows the OTP token, not only a confirmation link.
+6. Open Authentication > URL Configuration and remove `localhost:3000` before production.
+7. Open Authentication > SMTP Settings.
+8. Configure a production SMTP provider, preferably Brevo or Resend after sender/domain verification.
+
+### Required Email OTP Template
+
+The Android app expects the patient to type a 6-digit code. Supabase generates this as `{{ .Token }}`. If the template only contains `{{ .ConfirmationURL }}`, the patient receives a link that opens `localhost:3000`, which will not work for this mobile app.
+
+Supabase requires **custom SMTP** before templates can be edited. Set up Brevo SMTP first, then edit the templates below.
+
+Brevo SMTP values usually look like this:
+
+```text
+Host: smtp-relay.brevo.com
+Port: 587
+Username: your Brevo SMTP login email
+Password: your Brevo SMTP key
+Sender email: verified Brevo sender email
+Sender name: Aura AMR
+```
+
+The Brevo API key is not always the same as the SMTP key. Use the SMTP key shown in Brevo > SMTP & API.
+
+Use this subject:
+
+```text
+Your Aura AMR verification code
+```
+
+Use this body for **Confirm signup** and **Magic Link**:
+
+```html
+<h2>Your Aura AMR verification code</h2>
+<p>Enter this 6-digit code in the Aura app:</p>
+<h1 style="font-size:32px;letter-spacing:8px;">{{ .Token }}</h1>
+<p>This code expires soon. Do not share it with anyone.</p>
+<p>If you did not request this code, you can ignore this email.</p>
+```
+
+Do not ask patients to tap the confirmation link unless deep links are added to the Android app and the Supabase redirect URLs are configured for that app scheme.
 
 ## Recommended Tables
 
