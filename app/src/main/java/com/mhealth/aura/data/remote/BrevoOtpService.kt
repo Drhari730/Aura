@@ -8,12 +8,10 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 class BrevoOtpService(
-    private val supabaseUrl: String,
-    private val anonKey: String,
-    private val functionName: String
+    private val apiBaseUrl: String
 ) {
     val isConfigured: Boolean
-        get() = supabaseUrl.isNotBlank() && anonKey.isNotBlank() && functionName.isNotBlank()
+        get() = apiBaseUrl.isNotBlank()
 
     suspend fun sendEmailOtp(email: String): Result<Unit> = withContext(Dispatchers.IO) {
         if (!isConfigured) {
@@ -23,9 +21,9 @@ class BrevoOtpService(
         }
 
         request(
-            JSONObject()
-                .put("action", "send")
-                .put("email", email)
+            path = "/api/auth/request-otp",
+            body = JSONObject()
+                    .put("email", email)
         ).map { }
     }
 
@@ -38,23 +36,21 @@ class BrevoOtpService(
             }
 
             request(
-                JSONObject()
-                    .put("action", "verify")
+                path = "/api/auth/verify-otp",
+                body = JSONObject()
                     .put("email", email)
                     .put("code", token)
             ).map { }
         }
 
-    private fun request(body: JSONObject): Result<JSONObject> {
+    private fun request(path: String, body: JSONObject): Result<JSONObject> {
         return runCatching {
-            val endpoint = "${supabaseUrl.trimEnd('/')}/functions/v1/$functionName"
+            val endpoint = "${apiBaseUrl.trimEnd('/')}$path"
             val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
                 requestMethod = "POST"
                 connectTimeout = 15_000
                 readTimeout = 20_000
                 doOutput = true
-                setRequestProperty("apikey", anonKey)
-                setRequestProperty("Authorization", "Bearer $anonKey")
                 setRequestProperty("Content-Type", "application/json")
             }
 

@@ -3,6 +3,8 @@
 build/
 app/build/
 dist/
+backend/.env
+backend/data/
 local.properties
 .mcp.json
 debug.keystore

@@ -54,9 +54,7 @@ fun AuraNavHost(
     var registrationMode by remember { mutableStateOf(false) }
     val authService = remember {
         BrevoOtpService(
-            supabaseUrl = BuildConfig.SUPABASE_URL,
-            anonKey = BuildConfig.SUPABASE_ANON_KEY,
-            functionName = BuildConfig.AURA_OTP_FUNCTION
+            apiBaseUrl = BuildConfig.AURA_API_BASE_URL
         )
     }
 

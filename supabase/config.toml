@@ -1,4 +1,0 @@
-project_id = "niuzekyrjugnfwvcsles"
-
-[functions.aura-brevo-otp]
-verify_jwt = false
